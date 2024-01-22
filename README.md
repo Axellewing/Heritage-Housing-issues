@@ -39,11 +39,11 @@ The steps taken to clean, preprocess, and transform the raw data for analysis in
 
 ### Modeling
 
-We train various algorithms such as Linear Regression, Polynomial Regression, SVM, XGBoost, ...
+I have trained various algorithms such as Linear Regression, Polynomial Regression, SVM, XGBoost, ...
 
 ### Evaluation
 
-We discuss the R2 score and select the best model.
+I discuss the R2 score and select the best model.
 
 ### Deployment
 
