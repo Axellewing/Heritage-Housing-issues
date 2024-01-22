@@ -22,7 +22,7 @@ This project aims to provide comprehensive insights and predictions related to h
 
 ### Business Understanding
 
-In this step, we describe the business problem or question the project aims to address, emphasizing key challenges and goals related to housing issues in Ames.
+In this step, I describe the business problem or question the project aims to address, emphasizing key challenges and goals related to housing issues in Ames.
 
 ### Data Understanding
 
