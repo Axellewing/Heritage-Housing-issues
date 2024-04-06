@@ -456,17 +456,13 @@ if page == "(Extra), Predict your house price":
     st.write('---')
 
     if st.button("Predict Sale Price"):
-        # df2 = pd.read_csv("for_modeling.csv")
-        X = df.drop("SalePrice", axis=1)
-        y = df["SalePrice"]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-        xgb2 = XGBRegressor(n_estimators=500, learning_rate=0.01)
-        xgb2.fit(X_train, y_train)
-
+        # values from slider, user input 
         user_values = [_1stFlrSF, GarageArea, GrLivArea, TotalBsmtSF, BedroomAbvGr, BsmtExposure, BsmtFinType1,
                        GarageFinish, GarageYrBlt, KitchenQual, OverallCond, OverallQual, YearBuilt, YearRemodAdd]
-        user_input_df = pd.DataFrame([user_values], columns=X_train.columns)
-        prediction = xgb2.predict(user_input_df)
-        st.success(f"Predicted Sale Price: ${prediction[0]:,.0f}")
+        user_input_df = pd.DataFrame([user_values], columns=columns)
 
+        user_input_df[numerics] = scaler.transform(user_input_df[numerics])     # scale
+        prediction = model.predict(user_input_df)                               # predict
+        
+        # Predicted price
+        st.success(f"Predicted Sale Price: ${prediction[0]:,.0f}.")
