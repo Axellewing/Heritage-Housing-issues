@@ -2,7 +2,9 @@
 
 ## Overview
 
-This project aims to provide comprehensive insights and predictions related to house prices in Ames, Iowa, USA.
+This project aims to provide comprehensive insights and predictions related to house prices in Ames, Iowa, USA. I will deveelop a reliable predictive model for house prices in AMes, Iowa. 
+Enabling Lydia to estimate the sales price for her inherited properties. My goal is to enhance Lydia's understanding of the Ames, Iowa housing maket, accounting for factors that contribute
+to a house's desirability and value. 
 
 ## Table of Contents
 
