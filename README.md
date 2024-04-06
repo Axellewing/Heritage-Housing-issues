@@ -22,7 +22,7 @@ This project aims to provide comprehensive insights and predictions related to h
 
 ### Business Understanding
 
-In this step, I describe the business problem or question the project aims to address, emphasizing key challenges and goals related to housing issues in Ames.
+In this step, we describe the business problem or question the project aims to address, emphasizing key challenges and goals related to housing issues in Ames.
 
 ### Data Understanding
 
@@ -39,11 +39,11 @@ The steps taken to clean, preprocess, and transform the raw data for analysis in
 
 ### Modeling
 
-I have trained various algorithms such as Linear Regression, Polynomial Regression, SVM, XGBoost, ...
+We train various algorithms such as Linear Regression, Polynomial Regression, SVM, XGBoost, ...
 
 ### Evaluation
 
-I discuss the R2 score and select the best model.
+We discuss the R2 score and select the best model.
 
 ### Deployment
 
