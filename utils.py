@@ -3,10 +3,18 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import r2_score
-from xgboost import XGBRegressor
+
+def to_int(df):
+    """Helper for pipeline conversion to int
+
+    Args:
+        df (pd.DataFrame): _description_
+
+    Returns:
+        pd.DataFrame: df with converted columns
+    """
+    df['BedroomAbvGr'] = df['BedroomAbvGr'].astype(int)
+    return df
 
 
 def binning(year):
@@ -48,26 +56,39 @@ def binning(year):
         return "Unknown"
 
 
-# convert integer back to np.nan
-def back_to_nan(row, n):
-    if row == n:
-        return np.nan
-    return int(row)
+def process_data(df):
+    """ binning of year features.
+    """
+    # drop columns with too many nans
+    df.drop('EnclosedPorch', axis=1, inplace=True)
+    df.drop('WoodDeckSF', axis=1, inplace=True)
+
+    # apply binning to relevant columns
+    df['GarageYrBlt'] = df['GarageYrBlt'].apply(binning)
+    df['YearBuilt'] = df['YearBuilt'].apply(binning)
+    df['YearRemodAdd'] = df['YearRemodAdd'].apply(binning)
+    return df
 
 
-def plotRegResult(df_test, y_train, y_train_pred, r2_test=None, r2_train=None):
+def plotRegResult(model, x_train, y_train, x_test, y_test, r2_test=None, r2_train=None):
     """Plot train test model performance in two subplots"""
     fig, ax = plt.subplots(1, 2, sharey=True, figsize=(8, 4))
     sns.scatterplot(ax=ax[0],
-                    x=df_test['SalePrice'],
-                    y=df_test['y_pred'],
+                    x=y_test,
+                    y=model.predict(x_test),
                     )
     ax[0].plot(range(700000), range(700000), 'k')
-    ax[0].title.set_text(f'Test: r2={r2_test:0.2f}')
+    try:
+        ax[0].title.set_text(f'Test: r2={r2_test:0.2f}')
+    except:
+        ax[0].title.set_text(f'Test')
     ax[0].set_ylabel('predicted SalePrice')
 
-    sns.scatterplot(ax=ax[1], x=y_train, y=y_train_pred)
-    ax[1].title.set_text(f'Train: r2={r2_train:0.2f}')
+    sns.scatterplot(ax=ax[1], x=y_train, y=model.predict(x_train))
+    try:
+        ax[1].title.set_text(f'Train: r2={r2_train:0.2f}')
+    except:
+        ax[1].title.set_text(f'Train')
     ax[1].plot(range(700000), range(700000), 'k')
     ax[1].set_ylabel('predicted SalePrice')
     plt.tight_layout()
@@ -92,53 +113,3 @@ def increase_vs_base(base_pred, new_pred):
     diff = new_pred - base_pred
     rel_increase = diff / base_pred * 100  # in percents
     return diff, rel_increase
-
-    
-def runRegression(DF, test_size=0.2, n_est=500, lr=0.01):
-    """Run whole regression from the dataframe, test-train split,
-    k-features selector, fit linear regression, make train test predictions,
-    calculate r2 score.
-
-    Args:
-        DF: dataframe
-        test_size (float): ratio of test samples for split
-        k (int): If int, defines how many features are selected from the DF. Defaults to None.
-    Returns:
-        df_test (pd.DataFrame): test split part of DF
-        y_train: training values, train
-        y_train_pred: model predictions from train data
-        r2_test: r2 score on test data
-        r2_train: r2 score on train data
-        X_train, X_test, y_test: Rest of the output from train_test_split()
-    """
-    X = DF.drop("SalePrice", axis=1)
-    y = DF["SalePrice"]
-    # split data into training and testing set
-    X_train, X_test, y_train, y_test = train_test_split(X, y, 
-                                                        test_size=test_size,
-                                                        random_state=42,
-                                                        )
-        
-    xgb = XGBRegressor(n_estimators=n_est, learning_rate=lr)
-    xgb.fit(X_train, y_train)
-    y_test_pred = xgb.predict(X_test)
-
-    # predict from model, input is only X_test, y_pred should be close to y_test, wchich is the round truth
-    y_test_pred = xgb.predict(X_test)
-    # making it into a series with correct index
-    sy_pred = pd.Series(y_test_pred, index=X_test.index, name='y_pred')
-    
-    # merge predictions on test DF
-    df_test = DF.merge(sy_pred, left_index=True, right_index=True)
-    df_test = df_test.merge(X_test)
-    r2_test = r2_score(y_true=df_test['SalePrice'],
-                       y_pred=df_test['y_pred'],
-                       sample_weight=None)
-    
-    # Train predictions
-    # predict from model, input is only X_test, y_pred should be close to y_test, wchich is the ground truth
-    y_train_pred = xgb.predict(X_train)
-    r2_train = r2_score(y_true=y_train,
-                        y_pred=y_train_pred,
-                        sample_weight=None)
-    return df_test, y_train, y_train_pred, r2_test, r2_train, X_train, X_test, y_train, y_test

@@ -4,58 +4,20 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 from joblib import load
-from xgboost import XGBRegressor
-from utils import (binning, back_to_nan, increase_feature, increase_vs_base,
-                   runRegression, plotRegResult)
+from utils import (increase_feature, increase_vs_base,
+                   plotRegResult, to_int, process_data)
 from sklearn.model_selection import train_test_split
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import LabelEncoder
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 
-def process_inhereted(df):
-    """ binning, encoding, scaling, imputing of
-    new data entry
-    """
-    # apply binning to relevant columns
-    df['GarageYrBlt'] = df['GarageYrBlt'].apply(binning)
-    df['YearBuilt'] = df['YearBuilt'].apply(binning)
-    df['YearRemodAdd'] = df['YearRemodAdd'].apply(binning)
-    
-    # encoding
-    df['BsmtExposure'] = encBsmtExposure.transform(df['BsmtExposure'].astype(str))
-    df['BsmtFinType1'] = encBsmtFinType1.transform(df['BsmtFinType1'].astype(str))
-    df['GarageFinish'] = encGarageFinish.transform(df['GarageFinish'].astype(str))
-    df['KitchenQual'] = encKitchenQual.transform(df['KitchenQual'].astype(str))
-    df['GarageYrBlt'] = encGarageYrBlt.transform(df['GarageYrBlt'].astype(str))
-    df['YearBuilt'] = encYearBuilt.transform(df['YearBuilt'].astype(str))
-    df['YearRemodAdd'] = encYearRemodAdd.transform(df['YearRemodAdd'].astype(str))
-    
-    df[columns_to_impute] = imputer.fit_transform(df[columns_to_impute])
-    df[numerics] = scaler.transform(df[numerics])
-    return df
-
-
-### loading transformers
+### loading preprocessing and model pipeline
 model = load('model.save')
-# imputer = load('imputer.save')
-imputer = SimpleImputer(strategy='most_frequent')
-scaler = load('scaler.save')
 
-# encoders
-encBsmtExposure = load('encBsmtExposure.save')
-encBsmtFinType1 = load('encBsmtFinType1.save')
-encGarageFinish = load('encGarageFinish.save')
-encKitchenQual = load('encKitchenQual.save')
-encGarageYrBlt = load('encGarageYrBlt.save')
-encYearBuilt = load('encYearBuilt.save')
-encYearRemodAdd = load('encYearRemodAdd.save')
-
-columns_to_impute = ['BedroomAbvGr', 'BsmtFinType1', 'GarageFinish']
 numerics = ['1stFlrSF', 'GarageArea', 'GrLivArea', 'TotalBsmtSF']
-categories = ['BedroomAbvGr', 'BsmtExposure', 'BsmtFinType1', 'GarageFinish', 'GarageYrBlt', 'KitchenQual', 'OverallCond', 'OverallQual',
-                'YearBuilt', 'YearRemodAdd']
+categories = ['BedroomAbvGr', 'BsmtExposure', 'BsmtFinType1',
+              'GarageFinish', 'GarageYrBlt', 'KitchenQual',
+              'OverallCond', 'OverallQual', 'YearBuilt', 'YearRemodAdd']
 target=['SalePrice']
 columns = numerics + categories
 
@@ -66,49 +28,19 @@ house_dict = {'House 1': 0,
 
 ### LOADING DFs ###
 df = pd.read_csv("house_prices_records.csv")
+df = process_data(df)
 df = df[columns+target]
 
-# apply binning to relevant columns
-df['GarageYrBlt'] = df['GarageYrBlt'].apply(binning)
-df['YearBuilt'] = df['YearBuilt'].apply(binning)
-df['YearRemodAdd'] = df['YearRemodAdd'].apply(binning)
-
-# apply encoders
-encBsmtExposure = LabelEncoder()  # unknown why this encoder does not work, if loaded
-df['BsmtExposure'] = encBsmtExposure.fit_transform(df['BsmtExposure'].astype(str))
-encBsmtExposure.inverse_transform(np.array([0,1,2,3,4]))
-df['BsmtFinType1'] = encBsmtFinType1.transform(df['BsmtFinType1'].astype(str))
-df['BsmtFinType1'] = df['BsmtFinType1'].apply(back_to_nan, args=(7,))
-df['GarageFinish'] = encGarageFinish.transform(df['GarageFinish'].astype(str))
-df['GarageFinish'] = df['GarageFinish'].apply(back_to_nan, args=(4,))
-df['KitchenQual'] = encKitchenQual.transform(df['KitchenQual'].astype(str))
-df['GarageYrBlt'] = encGarageYrBlt.transform(df['GarageYrBlt'].astype(str))
-df['YearBuilt'] = encYearBuilt.transform(df['YearBuilt'].astype(str))
-df['YearRemodAdd'] = encYearRemodAdd.transform(df['YearRemodAdd'].astype(str))
-
-# other data preprocessing, imputer also does not work from the load
-df[columns_to_impute] = imputer.fit_transform(df[columns_to_impute])
-
-df['BedroomAbvGr']= df['BedroomAbvGr'].astype(int)
-df['BsmtFinType1']= df['BsmtFinType1'].astype(int)
-df['GarageFinish']= df['GarageFinish'].astype(int)
-
-df[numerics] = scaler.transform(df[numerics])
 
 # processing inherited properties.
 df_inh = pd.read_csv('inherited_houses.csv')
 df_base = df_inh.copy()
-df_base = process_inhereted(df_base)
+df_base = process_data(df_base)
 df_base = df_base[columns]
 
 # baseline prediction, 
 base_pred = model.predict(df_base)
 
-
-## train test split
-df_test, y_train, y_train_pred, r2_test, r2_train, *_ = runRegression(df)
-
-#####################
 def show_house_potential(house):
 # increase feature one by one and evaluate predicted increase in price
     diff = []
@@ -116,7 +48,7 @@ def show_house_potential(house):
     for column in columns:
         df2 = df_inh.copy()
         df2 = increase_feature(df2, column)
-        df2 = process_inhereted(df2)
+        df2 = process_data(df2)
         df2 = df2[columns]
         pred = model.predict(df2)
 
@@ -130,6 +62,8 @@ def show_house_potential(house):
     
     st.write(f'Max relative increase of **{max_inc:.2f} %** on sale price achieved\
              if **{golden_col}** is improved.')
+    
+    # plot of absolute increases in property price.
     fig, ax = plt.subplots(figsize=(8, 6))
     print(diff, columns)
     sns.barplot(x=columns, y=diff)
@@ -140,9 +74,15 @@ def show_house_potential(house):
     plt.tight_layout()
     st.pyplot(fig)
 
+
+
+
+#################
+### Dashboard ###
+#################
 st.title("Heritage Housing Issues Dashboard")
 page = st.sidebar.selectbox("Select a Page", ["Overview", "Exploratory Analysis", "Predictive Model Insights",
-                                              '(Extra), Predict your house price'])
+                                              'Predict your house price'])
 
 
 # --- Overview Page ---
@@ -261,20 +201,20 @@ if page == "Predictive Model Insights":
             """)
 
     st.subheader("Overall model performance")
-    fig_model = plotRegResult(df_test, y_train, y_train_pred, r2_test, r2_train)
+    X = df.drop("SalePrice", axis=1)
+    y = df["SalePrice"]
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    fig_model = plotRegResult(model, X_train, y_train, X_test, y_test)
     st.pyplot(fig_model)
 
     st.write("""
-            - Model performance is decent, with almost 90% variance explained for the test data.
+            - Model performance is decent, with almost 85% variance explained for the test data.
              The model is also robust as shown in the notebook.
             """)
 
-
-
-
-# --- Extra Predict your house price ---    
-if page == "(Extra), Predict your house price":
-    st.header("(Extra), Predict your house price")
+# --- Predict your house price ---    
+if page == "Predict your house price":
+    st.header("Predict your house price")
     st.write('---')
 
     _1stFlrSF = st.slider("Select  the area of the first floor in square feet (1stFlrSF)", 
@@ -283,7 +223,7 @@ if page == "(Extra), Predict your house price":
     st.write('---')
 
     GarageArea = st.slider("Select  the size of the garage in square feet (GarageArea)", 
-                          min_value=0.0, max_value=1418.0, value=0.0, step=0.01)
+                          min_value=0.0, max_value=1418.0, value=100.0, step=0.01)
     st.write(f"Selected GarageArea Value: {GarageArea}")
     st.write('---')
 
@@ -293,7 +233,7 @@ if page == "(Extra), Predict your house price":
     st.write('---')
 
     TotalBsmtSF = st.slider("Select  the total square feet of the basement area (TotalBsmtSF)", 
-                          min_value=0.0, max_value=6110.0, value=0.0, step=0.01)
+                          min_value=0.0, max_value=6110.0, value=100.0, step=0.01)
     st.write(f"Selected TotalBsmtSF Value: {TotalBsmtSF}")
     st.write('---')
 
@@ -306,14 +246,19 @@ if page == "(Extra), Predict your house price":
                              min_value=0, max_value=4, value=0, step=1)
     if BsmtExposure == 0:
         st.write(f"Selected BsmtExposure Value: Av (Average Exposure)")
+        _bsmtex = 'Av'
     elif BsmtExposure == 1:
         st.write(f"Selected BsmtExposure Value: Gd (Good Exposure)")
+        _bsmtex = 'Gd'
     elif BsmtExposure == 2:
         st.write(f"Selected BsmtExposure Value: Mn (Minimum Exposure)")
+        _bsmtex = 'Mn'
     elif BsmtExposure == 3:
         st.write(f"Selected BsmtExposure Value: No (No Exposure)")
+        _bsmtex = 'No'
     else:
         st.write(f"Selected BsmtExposure Value: None (No Basement)")
+        _bsmtex = 'None'
 
     st.write('---')
 
@@ -321,31 +266,42 @@ if page == "(Extra), Predict your house price":
                              min_value=0, max_value=6, value=0, step=1)
     if BsmtFinType1 == 0:
         st.write(f"Selected BsmtFinType1 Value: ALQ (Average Living Quarters)")
+        _bsmtFi = 'ALQ'
     elif BsmtFinType1 == 1:
         st.write(f"Selected BsmtFinType1 Value: BLQ (Below Average Living Quarters)")
+        _bsmtFi = 'BLQ'
     elif BsmtFinType1 == 2:
         st.write(f"Selected BsmtFinType1 Value: GLQ (Good Living Quarters)")
+        _bsmtFi = 'GLQ'
     elif BsmtFinType1 == 3:
         st.write(f"Selected BsmtFinType1 Value: LwQ (Low Quality)")
+        _bsmtFi = 'LwQ'
     elif BsmtFinType1 == 4:
         st.write(f"Selected BsmtFinType1 Value: None (No Basement)")
+        _bsmtFi = 'None'
     elif BsmtFinType1 == 5:
         st.write(f"Selected BsmtFinType1 Value: Rec (Average Rec Room)")
+        _bsmtFi = 'Rec'
     else:
         st.write(f"Selected BsmtFinType1 Value: Unf (Unfinished)")
+        _bsmtFi = 'Unf'
 
     st.write('---')
 
-    GarageFinish = st.slider("Select the interior finish of the garage", 
-                             min_value=0, max_value=3, value=0, step=1)
-    if GarageFinish == 0:
-        st.write(f"Selected GarageFinish Value: Fin (Finished)")
-    elif GarageFinish == 1:
-        st.write(f"Selected GarageFinish Value: None (No Garage)")
-    elif GarageFinish == 2:
-        st.write(f"Selected GarageFinish Value: RFn (Rough Finished)")
+    GarageFinish = st.select_slider("Select the interior finish of the garage", 
+                             options=('Rough', 'Unfinished', 'Finished', 'None'), value='None')
+    if GarageFinish == 'Finished':
+        st.write(f"Selected GarageFinish Value: Finished")
+        _garageFinish = 'Fin'
+    elif GarageFinish == 'Rough':
+        st.write(f"Selected GarageFinish Value: Rough")
+        _garageFinish = 'RFn'
+    elif GarageFinish == 'Unfinished':
+        st.write(f"Selected GarageFinish Value: Unfinished")
+        _garageFinish = 'Unf'
     else:
-        st.write(f"Selected GarageFinish Value: Unf (Unfinished)")
+        st.write(f"Selected GarageFinish Value: None")
+        _garageFinish = 'None'
 
     st.write('---')
 
@@ -353,48 +309,65 @@ if page == "(Extra), Predict your house price":
                             min_value=0, max_value=12, value=0, step=1)
     if GarageYrBlt == 0 :
         st.write(f"Selected GarageYrBlt Value: 1891-1900")
+        _gyear = '1891-1900'
     elif GarageYrBlt == 1 :
         st.write(f"Selected GarageYrBlt Value: 1901-1910")
+        _gyear = '1901-1910'
     elif GarageYrBlt == 2 :
         st.write(f"Selected GarageYrBlt Value: 1911-1920")
+        _gyear = '1911-1920'
     elif GarageYrBlt == 3 :
         st.write(f"Selected GarageYrBlt Value: 1921-1930")
+        _gyear = '1921-1930'
     elif GarageYrBlt == 4 :
         st.write(f"Selected GarageYrBlt Value: 1931-1940")
+        _gyear = '1931-1940'
     elif GarageYrBlt == 5 :
         st.write(f"Selected GarageYrBlt Value: 1941-1950")
+        _gyear = '1941-1950'
     elif GarageYrBlt == 6 :
         st.write(f"Selected GarageYrBlt Value: 1951-1960")
+        _gyear = '1951-1960'
     elif GarageYrBlt == 7 :
         st.write(f"Selected GarageYrBlt Value: 1961-1970")
+        _gyear = '1961-1970'
     elif GarageYrBlt == 8 :
         st.write(f"Selected GarageYrBlt Value: 1971-1980")
+        _gyear = '1971-1980'
     elif GarageYrBlt == 9 :
         st.write(f"Selected GarageYrBlt Value: 1981-1990")
+        _gyear = '1981-1990'
     elif GarageYrBlt == 10 :
         st.write(f"Selected GarageYrBlt Value: 1991-2000")
+        _gyear = '1991-2000'
     elif GarageYrBlt == 11 :
         st.write(f"Selected GarageYrBlt Value: 2001-2010")
+        _gyear = '2001-2010'
     else :
         st.write(f"Selected GarageYrBlt Value: Unkonwn")
+        _gyear = 'Unknown'
     
     st.write('---')
 
-    KitchenQual = st.slider("Select the quality rate of the kitchen", 
-                            min_value=0, max_value=3, value=0, step=1)
-    if KitchenQual == 0:
-        st.write(f"Selected KitchenQual Value: Ex (Excellent)")
-    elif KitchenQual == 1:
-        st.write(f"Selected KitchenQual Value: Fa (Fair)")
-    elif KitchenQual == 2:
-        st.write(f"Selected KitchenQual Value: Gd (Good)")
+    KitchenQual = st.select_slider("Select the quality rate of the kitchen", 
+                            options=('Excellent', 'Good', 'Fair', 'Average'), value='Average')
+    if KitchenQual == 'Excellent':
+        st.write(f"Selected KitchenQual Value: Excellent")
+        _kitchenQ = 'Ex'
+    elif KitchenQual == 'Fair':
+        st.write(f"Selected KitchenQual Value: Fair")
+        _kitchenQ = 'Fa'
+    elif KitchenQual == 'Good':
+        st.write(f"Selected KitchenQual Value: Good")
+        _kitchenQ = 'Gd'
     else:
-        st.write(f"Selected KitchenQual Value: TA (Typical/Average)")
+        st.write(f"Selected KitchenQual Value: Typical/Average")
+        _kitchenQ = 'TA'
 
     st.write('---')
 
     OverallCond  = st.slider("Select the overall condition rate of the house on a scale from 1 (Very Poor) to 10 (Very Excellent)", 
-                             min_value=1, max_value=10, value=0, step=1)
+                             min_value=1, max_value=10, value=1, step=1)
     st.write(f"Selected OverallCond Value: {OverallCond}")
     st.write('---')
 
@@ -407,32 +380,46 @@ if page == "(Extra), Predict your house price":
                           min_value=0, max_value=13, value=1, step=1)
     if YearBuilt == 0 :
         st.write(f"Selected YearBuilt Value: 1871-1880")
+        _ybuilt = '1871-1880'
     elif YearBuilt == 1 :
         st.write(f"Selected YearBuilt Value: 1881-1890")
+        _ybuilt = '1881-1890'
     elif YearBuilt == 2 :
         st.write(f"Selected YearBuilt Value: 1891-1900")
+        _ybuilt = '1891-1900'
     elif YearBuilt == 3 :
         st.write(f"Selected YearBuilt Value: 1901-1910")
+        _ybuilt = '1901-1910'
     elif YearBuilt == 4 :
         st.write(f"Selected YearBuilt Value: 1911-1920")
+        _ybuilt = '1911-1920'
     elif YearBuilt == 5 :
         st.write(f"Selected YearBuilt Value: 1921-1930")
+        _ybuilt = '1921-1930'
     elif YearBuilt == 6 :
         st.write(f"Selected YearBuilt Value: 1931-1940")
+        _ybuilt = '1931-1940'
     elif YearBuilt == 7 :
         st.write(f"Selected YearBuilt Value: 1941-1950")
+        _ybuilt = '1941-1950'
     elif YearBuilt == 8 :
         st.write(f"Selected YearBuilt Value: 1951-1960")
+        _ybuilt = '1951-1960'
     elif YearBuilt == 9 :
         st.write(f"Selected YearBuilt Value: 1961-1970")
+        _ybuilt = '1961-1970'
     elif YearBuilt == 10 :
         st.write(f"Selected YearBuilt Value: 1971-1980")
+        _ybuilt = '1971-1980'
     elif YearBuilt == 11 :
         st.write(f"Selected YearBuilt Value: 1981-1990")
+        _ybuilt = '1981-1990'
     elif YearBuilt == 11 :
         st.write(f"Selected YearBuilt Value: 1991-2000")
+        _ybuilt = '1991-2000'
     else :
         st.write(f"Selected YearBuilt Value: 2001-2010")
+        _ybuilt = '2001-2010'
 
     st.write('---')
 
@@ -440,29 +427,37 @@ if page == "(Extra), Predict your house price":
                              min_value=0, max_value=6, value=0, step=1)
     if YearRemodAdd == 0 :
         st.write(f"Selected YearRemodAdd Value: 1941-1950")
+        _yremod = '1941-1950'
     elif YearRemodAdd == 1 :
         st.write(f"Selected YearRemodAdd Value: 1951-1960")
+        _yremod = '1951-1960'
     elif YearRemodAdd == 2 :
         st.write(f"Selected YearRemodAdd Value: 1961-1970")
+        _yremod = '1961-1970'
     elif YearRemodAdd == 3 :
         st.write(f"Selected YearRemodAdd Value: 1971-1980")
+        _yremod = '1971-1980'
     elif YearRemodAdd == 4 :
         st.write(f"Selected YearRemodAdd Value: 1981-1990")
+        _yremod = '1981-1990'
     elif YearRemodAdd == 5 :
         st.write(f"Selected YearRemodAdd Value: 1991-2000")
+        _yremod = '1991-2000'
     else :
         st.write(f"Selected YearRemodAdd Value: 2001-2010")
+        _yremod = '2001-2010'
 
     st.write('---')
 
     if st.button("Predict Sale Price"):
         # values from slider, user input 
-        user_values = [_1stFlrSF, GarageArea, GrLivArea, TotalBsmtSF, BedroomAbvGr, BsmtExposure, BsmtFinType1,
-                       GarageFinish, GarageYrBlt, KitchenQual, OverallCond, OverallQual, YearBuilt, YearRemodAdd]
-        user_input_df = pd.DataFrame([user_values], columns=columns)
+        user_values = [_1stFlrSF, GarageArea, GrLivArea, TotalBsmtSF, BedroomAbvGr, _bsmtex, _bsmtFi,
+                       _garageFinish, _gyear, _kitchenQ, OverallCond, OverallQual, _ybuilt, _yremod]
+        user_input_df = pd.DataFrame([user_values], columns=columns)  # convert to DF
 
-        user_input_df[numerics] = scaler.transform(user_input_df[numerics])     # scale
-        prediction = model.predict(user_input_df)                               # predict
+        # predict price
+        prediction = model.predict(user_input_df)
+
         
         # Predicted price
         st.success(f"Predicted Sale Price: ${prediction[0]:,.0f}.")
