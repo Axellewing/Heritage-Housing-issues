@@ -9,29 +9,40 @@ to a house's desirability and value.
 ## Table of Contents
 
 - [CRISP-DM Methodology](#crisp-dm-methodology)
-  - [Business Understanding](#business-understanding)
-  - [Data Understanding](#data-understanding)
-  - [Data Preparation](#data-preparation)
-  - [Modeling](#modeling)
-  - [Evaluation](#evaluation)
-  - [Deployment](#deployment)
+  - [Business Understanding](1.business-understanding)
+  - [Data Understanding](2.data-understanding)
+  - [Data Preparation](3.data-preparation)
+  - [Modeling](4.modeling)
+  - [Evaluation](5.evaluation)
+  - [Deployment](6.deployment)
 - [Project Structure](#project-structure)
 - [Requirements](#requirements)
 - [Usage](#usage)
 - [Acknowledgments](#acknowledgments)
+- [Business Requirements](#business-requirements)
 
 ## CRISP-DM Methodology
 
-### Business Understanding
+## 1. Business Understanding
 
 In this step, we describe the business problem or question the project aims to address, emphasizing key challenges and goals related to housing issues in Ames.
 
-### Data Understanding
+### Business Requirements:
+* Requirements for Data Visualization:
+    * Visual representations of housing price trends over time.
+    * Interactive visualizations showcasing the correlation between various features and sales prices.
+* Requirements for Machine Learning Tasks:
+    * Accurate house price predictions for Lydia's properties, enabling informed decision-making.
+* User Stories:
+    * As a user, I want to visualize historical house prices to understand market trends.
+    * As a user, I want to input features and receive accurate price predictions to evaluate my inherited properties.
 
-- I explain the data sources used, including their nature, structure, and any initial exploration performed. 
-- I discuss relevant attributes and their significance in predicting house prices.
+### 2. Data Understanding
 
-### Data Preparation
+- I explain the data sources used, including the dataset from Kaggle, which comprises 1,460 rows with various features that describe the properties. The dataset includes aspects such as the number of bedrooms, square footage, year built, etc.
+  I discuss relevant attributes and their significance in predicting house prices.
+
+### 3. Data Preparation
 
 The steps taken to clean, preprocess, and transform the raw data for analysis include:
 - Imputation.
@@ -39,15 +50,15 @@ The steps taken to clean, preprocess, and transform the raw data for analysis in
 - Binning.
 - Standardization.
 
-### Modeling
+### 4. Modeling
 
 We train various algorithms such as Linear Regression, Polynomial Regression, SVM, XGBoost, ...
 
-### Evaluation
+### 5. Evaluation
 
 We discuss the R2 score and select the best model.
 
-### Deployment
+### 6. Deployment
 
 - Develop a dashboard using the Streamlit framework to provide a user-friendly interface for utilizing the model.
 - Deploy the app on Heroku to make it accessible online.
@@ -71,3 +82,8 @@ To run the app locally, use the following command: `streamlit run app.py`.
 ## Acknowledgments
 
 The dataset was downloaded from Kaggle, and the project was developed following the CRISP-DM methodology.
+
+## Business Requirements
+
+* Data Visualization: Focuses on presenting data insights and trends to better inform users about the housing market.
+* Machine Learning: Targets the development of robust predictive models to guide property valuation processes.
